@@ -22,6 +22,7 @@ interface TavilyResponse {
   query: string;
   follow_up_questions?: Array<string>;
   answer?: string;
+  auto_parameters?: Record<string, any>;
   images?: Array<string | {
     url: string;
     description?: string;
@@ -50,7 +51,7 @@ interface TavilyCrawlResponse {
 interface TavilyResearchResponse {
   request_id?: string;
   status?: string;
-  content?: string;
+  content?: string | Record<string, any>;
   error?: string;
 }
 
@@ -214,8 +215,21 @@ class TavilyClient {
                 default: false
               },
               include_raw_content: {
+                anyOf: [
+                  { type: "boolean" },
+                  { type: "string", enum: ["markdown"] }
+                ],
+                description: "Include the cleaned and parsed HTML content of each search result. Pass true for default format or \"markdown\" for markdown-formatted raw content",
+                default: false
+              },
+              include_answer: {
                 type: "boolean",
-                description: "Include the cleaned and parsed HTML content of each search result",
+                description: "Include a short AI-generated direct answer to the query",
+                default: false
+              },
+              auto_parameters: {
+                type: "boolean",
+                description: "Let Tavily automatically configure search parameters based on query intent",
                 default: false
               },
               include_domains: {
@@ -259,7 +273,7 @@ class TavilyClient {
                 items: { type: "string" },
                 description: "List of URLs to extract content from"
               },
-              extract_depth: { 
+              extract_depth: {
                 type: "string",
                 enum: ["basic", "advanced"],
                 description: "Use 'advanced' for LinkedIn, protected sites, or tables/embedded content",
@@ -427,6 +441,11 @@ class TavilyClient {
                 enum: ["mini", "pro", "auto"],
                 description: "Defines the degree of depth of the research. 'mini' is good for narrow tasks with few subtopics. 'pro' is good for broad tasks with many subtopics. 'auto' automatically selects the best model.",
                 default: "auto"
+              },
+              output_schema: {
+                type: "object",
+                additionalProperties: true,
+                description: "A JSON schema object defining the structure of the research output. Only 'properties' and 'required' keys are allowed at the root level — do NOT include 'type'. Example: {\"properties\": {\"summary\": {\"type\": \"string\"}}, \"required\": [\"summary\"]}"
               }
             },
             required: ["input"]
@@ -465,6 +484,8 @@ class TavilyClient {
               include_images: args.include_images,
               include_image_descriptions: args.include_image_descriptions,
               include_raw_content: args.include_raw_content,
+              include_answer: args.include_answer,
+              auto_parameters: args.auto_parameters,
               include_domains: Array.isArray(args.include_domains) ? args.include_domains : [],
               exclude_domains: Array.isArray(args.exclude_domains) ? args.exclude_domains : [],
               country: args.country,
@@ -527,9 +548,18 @@ class TavilyClient {
             };
 
           case "tavily_research":
+            let parsedOutputSchema = args.output_schema;
+            if (typeof parsedOutputSchema === 'string') {
+              try { parsedOutputSchema = JSON.parse(parsedOutputSchema); } catch { /* keep as-is */ }
+            }
+            if (parsedOutputSchema && typeof parsedOutputSchema === 'object') {
+              const { properties, required, ...rest } = parsedOutputSchema;
+              parsedOutputSchema = { ...(properties ? { properties } : {}), ...(required ? { required } : {}) };
+            }
             const researchResponse = await this.research({
               input: args.input,
-              model: args.model
+              model: args.model,
+              output_schema: parsedOutputSchema
             });
             return {
               content: [{
@@ -597,6 +627,8 @@ class TavilyClient {
         include_images: params.include_images,
         include_image_descriptions: params.include_image_descriptions,
         include_raw_content: params.include_raw_content,
+        include_answer: params.include_answer,
+        auto_parameters: params.auto_parameters,
         include_domains: params.include_domains || [],
         exclude_domains: params.exclude_domains || [],
         country: params.country,
@@ -706,6 +738,7 @@ class TavilyClient {
       const response = await this.axiosInstance.post(this.baseURLs.research, {
         input: params.input,
         model: params.model || 'auto',
+        ...(params.output_schema ? { output_schema: params.output_schema } : {}),
         api_key: API_KEY
       });
 
@@ -769,6 +802,11 @@ class TavilyClient {
 function formatResults(response: TavilyResponse): string {
   // Format API response into human-readable text
   const output: string[] = [];
+
+  // Note if auto-parameters were used
+  if (response.auto_parameters) {
+    output.push(`[Note: Search parameters were automatically configured by Tavily: ${JSON.stringify(response.auto_parameters)}]`);
+  }
 
   // Include answer if available
   if (response.answer) {
@@ -850,7 +888,15 @@ function formatResearchResults(response: TavilyResearchResponse): string {
     return `Research Error: ${response.error}`;
   }
 
-  return response.content || 'No research results available';
+  if (!response.content) {
+    return 'No research results available';
+  }
+
+  if (typeof response.content === 'object') {
+    return JSON.stringify(response.content, null, 2);
+  }
+
+  return response.content;
 }
 
 function listTools(): void {
