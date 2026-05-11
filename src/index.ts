@@ -217,14 +217,17 @@ class TavilyClient {
               include_raw_content: {
                 anyOf: [
                   { type: "boolean" },
-                  { type: "string", enum: ["markdown"] }
+                  { type: "string", enum: ["markdown", "text"] }
                 ],
-                description: "Include the cleaned and parsed HTML content of each search result. Pass true for default format or \"markdown\" for markdown-formatted raw content",
+                description: "Include the cleaned and parsed HTML content of each search result. Pass true for default format, \"markdown\" for markdown-formatted, or \"text\" for plain text raw content",
                 default: false
               },
               include_answer: {
-                type: "boolean",
-                description: "Include a short AI-generated direct answer to the query",
+                anyOf: [
+                  { type: "boolean" },
+                  { type: "string", enum: ["basic", "advanced"] }
+                ],
+                description: "Include an AI-generated answer to the query. Pass true or \"basic\" for a short answer, or \"advanced\" for a more detailed answer",
                 default: false
               },
               auto_parameters: {
@@ -444,7 +447,7 @@ class TavilyClient {
               },
               output_schema: {
                 type: "object",
-                additionalProperties: true,
+                additionalProperties: false,
                 description: "A JSON schema object defining the structure of the research output. Only 'properties' and 'required' keys are allowed at the root level — do NOT include 'type'. Example: {\"properties\": {\"summary\": {\"type\": \"string\"}}, \"required\": [\"summary\"]}"
               }
             },
