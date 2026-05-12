@@ -1,0 +1,13 @@
+services:
+  tavily-mcp:
+    build: .
+    ports:
+      - "8050:8000"
+    env_file:
+      - .env
+    environment:
+      TAVILY_API_KEY: ${TAVILY_API_KEY}
+      MCP_TRANSPORT: streamable-http
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 8000
+    restart: unless-stopped
