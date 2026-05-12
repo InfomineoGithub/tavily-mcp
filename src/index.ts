@@ -2,9 +2,12 @@
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {CallToolRequestSchema, ListToolsRequestSchema, Tool} from "@modelcontextprotocol/sdk/types.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
+import { CallToolRequestSchema, ListToolsRequestSchema, Tool } from "@modelcontextprotocol/sdk/types.js";
 import axios from "axios";
 import { randomUUID } from "crypto";
+import { IncomingMessage, ServerResponse } from "node:http";
 import dotenv from "dotenv";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import yargs from 'yargs';
@@ -63,7 +66,8 @@ interface TavilyMapResponse {
 
 class TavilyClient {
   // Core client properties
-  private server: Server;
+  server: Server;
+  private static sigintHandlerRegistered = false;
   private axiosInstance;
   private baseURLs = {
     search: 'https://api.tavily.com/search',
@@ -79,6 +83,7 @@ class TavilyClient {
     crawl: 'https://docs.tavily.com/documentation/api-reference/endpoint/crawl',
     map: 'https://docs.tavily.com/documentation/api-reference/endpoint/map',
     research: 'https://docs.tavily.com/documentation/api-reference/endpoint/research',
+    research_status: 'https://docs.tavily.com/documentation/api-reference/endpoint/research',
   };
 
   constructor() {
@@ -114,37 +119,39 @@ class TavilyClient {
       console.error("[MCP Error]", error);
     };
 
-    process.on('SIGINT', async () => {
-      await this.server.close();
-      process.exit(0);
-    });
+    if (!TavilyClient.sigintHandlerRegistered) {
+      TavilyClient.sigintHandlerRegistered = true;
+      process.on('SIGINT', async () => {
+        process.exit(0);
+      });
+    }
   }
 
   private getDefaultParameters(): Record<string, any> {
     /**Get default parameter values from environment variable.
-     * 
-     * The environment variable DEFAULT_PARAMETERS should contain a JSON string 
+     *
+     * The environment variable DEFAULT_PARAMETERS should contain a JSON string
      * with parameter names and their default values.
      * Example: DEFAULT_PARAMETERS='{"search_depth":"basic","include_images":true}'
-     * 
+     *
      * Returns:
      *   Object with default parameter values, or empty object if env var is not present or invalid.
      */
     try {
       const parametersEnv = process.env.DEFAULT_PARAMETERS;
-      
+
       if (!parametersEnv) {
         return {};
       }
-      
+
       // Parse the JSON string
       const defaults = JSON.parse(parametersEnv);
-      
+
       if (typeof defaults !== 'object' || defaults === null || Array.isArray(defaults)) {
         console.warn(`DEFAULT_PARAMETERS is not a valid JSON object: ${parametersEnv}`);
         return {};
       }
-      
+
       return defaults;
     } catch (error: any) {
       console.warn(`Failed to parse DEFAULT_PARAMETERS as JSON: ${error.message}`);
@@ -166,17 +173,17 @@ class TavilyClient {
           inputSchema: {
             type: "object",
             properties: {
-              query: { 
-                type: "string", 
-                description: "Search query" 
+              query: {
+                type: "string",
+                description: "Search query"
               },
               search_depth: {
                 type: "string",
-                enum: ["basic","advanced","fast","ultra-fast"],
+                enum: ["basic", "advanced", "fast", "ultra-fast"],
                 description: "The depth of the search. 'basic' for generic results, 'advanced' for more thorough search, 'fast' for optimized low latency with high relevance, 'ultra-fast' for prioritizing latency above all else",
                 default: "basic"
               },
-              topic : {
+              topic: {
                 type: "string",
                 enum: ["general"],
                 description: "The category of the search. This will determine which of our agents will be used for the search",
@@ -192,25 +199,25 @@ class TavilyClient {
                 description: "Will return all results after the specified start date. Required to be written in the format YYYY-MM-DD.",
                 default: "",
               },
-              end_date: { 
+              end_date: {
                 type: "string",
                 description: "Will return all results before the specified end date. Required to be written in the format YYYY-MM-DD",
                 default: "",
               },
-              max_results: { 
-                type: "number", 
+              max_results: {
+                type: "number",
                 description: "The maximum number of search results to return",
                 default: 5,
                 minimum: 5,
                 maximum: 20
               },
-              include_images: { 
-                type: "boolean", 
+              include_images: {
+                type: "boolean",
                 description: "Include a list of query-related images in the response",
                 default: false,
               },
-              include_image_descriptions: { 
-                type: "boolean", 
+              include_image_descriptions: {
+                type: "boolean",
                 description: "Include a list of query-related images and their descriptions in the response",
                 default: false
               },
@@ -263,7 +270,7 @@ class TavilyClient {
           inputSchema: {
             type: "object",
             properties: {
-              urls: { 
+              urls: {
                 type: "array",
                 items: { type: "string" },
                 description: "List of URLs to extract content from"
@@ -355,12 +362,12 @@ class TavilyClient {
               },
               format: {
                 type: "string",
-                enum: ["markdown","text"],
+                enum: ["markdown", "text"],
                 description: "The format of the extracted web page content. markdown returns content in markdown format. text returns plain text and may increase latency.",
                 default: "markdown"
               },
-              include_favicon: { 
-                type: "boolean", 
+              include_favicon: {
+                type: "boolean",
                 description: "Whether to include the favicon URL for each result",
                 default: false,
               },
@@ -441,6 +448,20 @@ class TavilyClient {
             required: ["input"]
           }
         },
+        {
+          name: "tavily_research_status",
+          description: "Check the status of a previously submitted tavily_research job. If completed, returns the full research content. If still in progress, returns a status message so the agent knows to poll again later. Use the request_id returned by tavily_research.",
+          inputSchema: {
+            type: "object",
+            properties: {
+              request_id: {
+                type: "string",
+                description: "The request_id returned by a previous tavily_research call"
+              }
+            },
+            required: ["request_id"]
+          }
+        },
       ];
       return { tools };
     });
@@ -464,7 +485,7 @@ class TavilyClient {
             if (args.country) {
               args.topic = "general";
             }
-            
+
             response = await this.search({
               query: args.query,
               search_depth: args.search_depth,
@@ -484,7 +505,7 @@ class TavilyClient {
               exact_match: args.exact_match
             });
             break;
-          
+
           case "tavily_extract":
             response = await this.extract({
               urls: args.urls,
@@ -548,6 +569,15 @@ class TavilyClient {
               }]
             };
 
+          case "tavily_research_status":
+            const statusResponse = await this.researchStatus(args.request_id);
+            return {
+              content: [{
+                type: "text",
+                text: formatResearchStatusResult(statusResponse)
+              }]
+            };
+
           default:
             throw new McpError(
               ErrorCode.MethodNotFound,
@@ -586,17 +616,70 @@ class TavilyClient {
 
 
   async run(): Promise<void> {
-    const transport = new StdioServerTransport();
-    await this.server.connect(transport);
-    console.error("Tavily MCP server running on stdio");
+    const mcpTransport = process.env.MCP_TRANSPORT || 'stdio';
+    if (mcpTransport === 'streamable-http') {
+      await this.runHttp();
+    } else {
+      const transport = new StdioServerTransport();
+      await this.server.connect(transport);
+      console.error("Tavily MCP server running on stdio");
+    }
+  }
+
+  private async runHttp(): Promise<void> {
+    const host = process.env.MCP_HOST || '127.0.0.1';
+    const port = parseInt(process.env.MCP_PORT || '8000', 10);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = createMcpExpressApp({ host }) as any;
+
+    const sessions = new Map<string, StreamableHTTPServerTransport>();
+
+    const handleMcp = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
+      const sessionId = (req.headers as Record<string, string>)['mcp-session-id'];
+
+      if (!sessionId) {
+        // New session: each session gets its own TavilyClient + transport
+        const client = new TavilyClient();
+        const transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+          onsessioninitialized: (id) => {
+            sessions.set(id, transport);
+          },
+        });
+        transport.onclose = () => {
+          if (transport.sessionId) {
+            sessions.delete(transport.sessionId);
+          }
+        };
+        await client.server.connect(transport);
+        await transport.handleRequest(req, res, (req as any).body);
+      } else {
+        const transport = sessions.get(sessionId);
+        if (!transport) {
+          (res as ServerResponse).writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Session not found' }));
+          return;
+        }
+        await transport.handleRequest(req, res, (req as any).body);
+      }
+    };
+
+    app.post('/mcp', handleMcp);
+    app.get('/mcp', handleMcp);
+    app.delete('/mcp', handleMcp);
+
+    app.listen(port, host, () => {
+      console.error(`Tavily MCP server running on http://${host}:${port}/mcp`);
+    });
   }
 
   async search(params: any): Promise<TavilyResponse> {
     try {
       const endpoint = this.baseURLs.search;
-      
+
       const defaults = this.getDefaultParameters();
-      
+
       // Prepare the request payload
       const searchParams: any = {
         query: params.query,
@@ -617,32 +700,32 @@ class TavilyClient {
         exact_match: params.exact_match,
         api_key: API_KEY,
       };
-      
+
       // Apply default parameters
       for (const key in searchParams) {
         if (key in defaults) {
           searchParams[key] = defaults[key];
         }
       }
-      
+
       // We have to set defaults due to the issue with optional parameter types or defaults = None
       // Because of this, we have to set the time_range to None if start_date or end_date is set
       // or else start_date and end_date will always cause errors when sent
       if ((searchParams.start_date || searchParams.end_date) && searchParams.time_range) {
         searchParams.time_range = undefined;
       }
-      
+
       // Remove empty values
       const cleanedParams: any = {};
       for (const key in searchParams) {
         const value = searchParams[key];
         // Skip empty strings, null, undefined, and empty arrays
-        if (value !== "" && value !== null && value !== undefined && 
-            !(Array.isArray(value) && value.length === 0)) {
+        if (value !== "" && value !== null && value !== undefined &&
+          !(Array.isArray(value) && value.length === 0)) {
           cleanedParams[key] = value;
         }
       }
-      
+
       const response = await this.axiosInstance.post(endpoint, cleanedParams);
       return response.data;
     } catch (error: any) {
@@ -775,6 +858,35 @@ class TavilyClient {
       throw error;
     }
   }
+
+  async researchStatus(requestId: string): Promise<{ status: string; content?: string; error?: string }> {
+    try {
+      const response = await this.axiosInstance.get(`${this.baseURLs.research}/${requestId}`);
+      const status = response.data.status;
+
+      if (status === 'completed') {
+        return { status: 'completed', content: response.data.content ?? '' };
+      }
+
+      if (status === 'failed') {
+        return { status: 'failed', error: `Research task failed. Documentation: ${this.docsURLs.research}` };
+      }
+
+      // Still running — return status so the agent knows to poll again
+      return { status: status ?? 'in_progress' };
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return { status: 'not_found', error: `Research task not found. request_id: ${requestId}` };
+      }
+      if (error.response?.status === 401) {
+        throw new Error(`Invalid API key. Documentation: ${this.docsURLs.research_status}`);
+      }
+      if (error.response?.status === 429) {
+        throw new Error(`Usage limit exceeded. Documentation: ${this.docsURLs.research_status}`);
+      }
+      throw error;
+    }
+  }
 }
 
 function formatResults(response: TavilyResponse): string {
@@ -805,37 +917,37 @@ function formatResults(response: TavilyResponse): string {
     }
   });
 
-    // Add images section if available
-    if (response.images && response.images.length > 0) {
-      output.push('\nImages:');
-      response.images.forEach((image, index) => {
-        if (typeof image === 'string') {
-          output.push(`\n[${index + 1}] URL: ${image}`);
-        } else {
-          output.push(`\n[${index + 1}] URL: ${image.url}`);
-          if (image.description) {
-            output.push(`   Description: ${image.description}`);
-          }
+  // Add images section if available
+  if (response.images && response.images.length > 0) {
+    output.push('\nImages:');
+    response.images.forEach((image, index) => {
+      if (typeof image === 'string') {
+        output.push(`\n[${index + 1}] URL: ${image}`);
+      } else {
+        output.push(`\n[${index + 1}] URL: ${image.url}`);
+        if (image.description) {
+          output.push(`   Description: ${image.description}`);
         }
-      });
-    }  
+      }
+    });
+  }
 
   return output.join('\n');
 }
 
 function formatCrawlResults(response: TavilyCrawlResponse): string {
   const output: string[] = [];
-  
+
   output.push(`Crawl Results:`);
   output.push(`Base URL: ${response.base_url}`);
-  
+
   output.push('\nCrawled Pages:');
   response.results.forEach((page, index) => {
     output.push(`\n[${index + 1}] URL: ${page.url}`);
     if (page.raw_content) {
       // Truncate content if it's too long
-      const contentPreview = page.raw_content.length > 200 
-        ? page.raw_content.substring(0, 200) + "..." 
+      const contentPreview = page.raw_content.length > 200
+        ? page.raw_content.substring(0, 200) + "..."
         : page.raw_content;
       output.push(`Content: ${contentPreview}`);
     }
@@ -843,7 +955,7 @@ function formatCrawlResults(response: TavilyCrawlResponse): string {
       output.push(`Favicon: ${page.favicon}`);
     }
   });
-  
+
   return output.join('\n');
 }
 
@@ -869,6 +981,17 @@ function formatResearchResults(response: TavilyResearchResponse): string {
   return response.content || 'No research results available';
 }
 
+function formatResearchStatusResult(response: { status: string; content?: string; error?: string }): string {
+  if (response.status === 'completed') {
+    return `Status: completed\n\n${response.content ?? ''}`;
+  }
+  if (response.status === 'failed' || response.status === 'not_found') {
+    return `Status: ${response.status}\nError: ${response.error ?? 'Unknown error'}`;
+  }
+  // Still running
+  return `Status: ${response.status}\nThe research job is still in progress. Call tavily_research_status again with the same request_id to check for completion.`;
+}
+
 function listTools(): void {
   const tools = [
     {
@@ -890,6 +1013,10 @@ function listTools(): void {
     {
       name: "tavily_research",
       description: "Performs comprehensive research on any topic or question by gathering information from multiple sources. Supports different research depths ('mini' for narrow tasks, 'pro' for broad research, 'auto' for automatic selection). Ideal for in-depth analysis, report generation, and answering complex questions requiring synthesis of multiple sources."
+    },
+    {
+      name: "tavily_research_status",
+      description: "Check the status of a previously submitted tavily_research job using its request_id. Returns the full research content if completed, a progress message if still running, or an error if the job failed or was not found. Use this to poll for completion of long-running research tasks."
     }
   ];
 
