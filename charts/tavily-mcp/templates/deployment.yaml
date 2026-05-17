@@ -68,7 +68,7 @@ spec:
             - name: tmp
               mountPath: /tmp
             - name: home-cache
-              mountPath: /home/app/.cache
+              mountPath: /home/node/.cache
       volumes:
         - name: tmp
           emptyDir:

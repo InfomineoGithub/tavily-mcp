@@ -17,15 +17,13 @@ RUN apk add --no-cache python3 py3-pip && \
     pip install --no-cache-dir --break-system-packages mcp-proxy==0.12.0 && \
     apk del py3-pip
 
-RUN addgroup -g 1000 app && adduser -D -u 1000 -G app -h /home/app -s /sbin/nologin app
-
 COPY --from=builder /app/build /app/build
 COPY --from=builder /app/package.json /app/package.json
 COPY --from=builder /app/package-lock.json /app/package-lock.json
 
-RUN npm ci --ignore-scripts --omit-dev && chown -R app:app /app
+RUN npm ci --ignore-scripts --omit-dev && chown -R node:node /app
 
-USER app
+USER node
 
 ENV NODE_ENV=production \
     MCP_PORT=8000
