@@ -1,0 +1,12 @@
+apiVersion: v2
+name: tavily-mcp
+description: Tavily MCP server — Node.js stdio MCP wrapped with mcp-proxy for streamable-http
+type: application
+version: 0.1.0
+appVersion: "0.2.19"
+keywords:
+  - mcp
+  - tavily
+  - web-search
+maintainers:
+  - name: Omar

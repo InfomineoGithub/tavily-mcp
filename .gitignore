@@ -1,3 +1,5 @@
 node_modules/
 build/
 .env*
+charts/tavily-mcp/values-stellantis.yaml
+charts/tavily-mcp/values-staging.yaml

@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tavily-mcp
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: app=europe-west1-docker.pkg.dev/stellantis-490509/brain-mcp-tavily/tavily-mcp:latest
+    argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/write-back-method: git
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:InfomineoGithub/tavily-mcp.git
+    targetRevision: HEAD
+    path: charts/tavily-mcp
+    helm:
+      valueFiles:
+        - secrets+gpg-import:///helm-secrets-private-keys/key.asc?values-stellantis.enc.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: tavily
+  syncPolicy:
+    automated:
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
