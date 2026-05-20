@@ -1,10 +1,12 @@
-FROM node:22-alpine AS builder
+FROM node:22.12-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies first (cache layer)
-COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts
+COPY package.json package-lock.json tsconfig.json ./
+COPY src/ ./src/
+
+RUN --mount=type=cache,target=/root/.npm npm ci
+
 
 # Copy source and build
 COPY tsconfig.json ./
@@ -21,17 +23,22 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# mcp-proxy bridges stdio MCP servers to HTTP/SSE so this can run as a service in Kubernetes.
+RUN apk add --no-cache python3 py3-pip && \
+    pip install --no-cache-dir --break-system-packages mcp-proxy==0.12.0 && \
+    apk del py3-pip
 
-# Copy built artefacts and production deps from builder
-COPY --from=builder /app/build ./build
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/package-lock.json ./package-lock.json
+COPY --from=builder /app/build /app/build
+COPY --from=builder /app/package.json /app/package.json
+COPY --from=builder /app/package-lock.json /app/package-lock.json
 
-RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --ignore-scripts
+RUN npm ci --ignore-scripts --omit-dev && chown -R node:node /app
 
-USER appuser
+USER node
+
+ENV NODE_ENV=production \
+    MCP_PORT=8000
 
 EXPOSE 8000
 
-CMD ["node", "build/index.js"]
+CMD ["sh", "-c", "mcp-proxy --port ${MCP_PORT} --host 0.0.0.0 --pass-environment -- node build/index.js"]
