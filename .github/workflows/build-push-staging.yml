@@ -25,7 +25,8 @@ jobs:
       - name: Authenticate to brain-staging
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY_STAGING }}
+          workload_identity_provider: projects/462923783776/locations/global/workloadIdentityPools/github-actions-pool/providers/github
+          service_account: gha-tavily-mcp@brain-staging-450115.iam.gserviceaccount.com
 
       - name: Set up gcloud (brain-staging)
         uses: google-github-actions/setup-gcloud@v2
