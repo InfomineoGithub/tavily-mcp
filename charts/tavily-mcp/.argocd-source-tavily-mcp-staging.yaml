@@ -4,5 +4,5 @@ helm:
     value: europe-west1-docker.pkg.dev/brain-staging-450115/brain-mcp-tavily/tavily-mcp
     forcestring: true
   - name: image.tag
-    value: latest@sha256:f00a418cbe6e96ad0c45f59e9fb334608d9f630c1bfa8bf444acf15f304ae376
+    value: latest@sha256:da27eca05d5aca6396e1d72ba446c35956e0163cb74111383f3a7741236b9ff6
     forcestring: true
