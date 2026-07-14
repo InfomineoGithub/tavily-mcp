@@ -3,6 +3,8 @@ name: Build & Push (Staging)
 on:
   push:
     branches: [dev]
+    paths-ignore:
+      - 'charts/**'
 
 concurrency:
   group: build-${{ github.ref }}
