@@ -24,8 +24,10 @@ ENV NODE_ENV=production \
 WORKDIR /app
 
 # mcp-proxy bridges stdio MCP servers to HTTP/SSE so this can run as a service in Kubernetes.
+# Pin mcp: mcp-proxy 0.12.0 imports request_ctx from mcp.server.lowlevel.server,
+# which newer mcp releases removed — leaving mcp unpinned produced crash-looping images.
 RUN apk add --no-cache python3 py3-pip && \
-    pip install --no-cache-dir --break-system-packages mcp-proxy==0.12.0 && \
+    pip install --no-cache-dir --break-system-packages 'mcp-proxy==0.12.0' 'mcp==1.28.1' && \
     apk del py3-pip
 
 COPY --from=builder /app/build /app/build
