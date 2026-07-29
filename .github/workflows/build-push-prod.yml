@@ -1,6 +1,10 @@
-name: Build & Push
+name: Build & Push (Production)
 
+# Production mirror of build-push-staging.yml. Fires on pushes to `main` and
+# pushes the image to the brain-prod-450115 Artifact Registry. Auth uses
+# Workload Identity Federation against the prod project's github-actions-pool.
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths-ignore:
@@ -8,10 +12,9 @@ on:
       - '.github/**'
       - '**.md'
       - '.gitignore'
-  workflow_dispatch:
 
 concurrency:
-  group: build-${{ github.ref }}
+  group: build-prod-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -28,22 +31,23 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Authenticate to Stellantis
+      - name: Authenticate to brain-prod
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: projects/875271186470/locations/global/workloadIdentityPools/github-actions-pool/providers/github
+          service_account: gha-tavily-mcp@brain-prod-450115.iam.gserviceaccount.com
 
-      - name: Set up gcloud (Stellantis)
+      - name: Set up gcloud (brain-prod)
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Configure Docker for Stellantis registry
+      - name: Configure Docker for brain-prod registry
         run: gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
 
-      - name: Build and push to Stellantis
+      - name: Build and push to brain-prod
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: europe-west1-docker.pkg.dev/stellantis-490509/brain-mcp-tavily/tavily-mcp:latest
+          tags: europe-west1-docker.pkg.dev/brain-prod-450115/brain-mcp-tavily/tavily-mcp:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
