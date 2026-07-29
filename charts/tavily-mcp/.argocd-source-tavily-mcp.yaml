@@ -4,5 +4,5 @@ helm:
     value: europe-west1-docker.pkg.dev/stellantis-490509/brain-mcp-tavily/tavily-mcp
     forcestring: true
   - name: image.tag
-    value: latest@sha256:bbbc673052caf0ca0344de5732898f6e7218e7d80a9c9f466b2253b1fdfdbc7b
+    value: latest@sha256:267c3d36028253c58aeea7cfd2aef60e7c04a895ba0de01e1d24d4c43f2ba76f
     forcestring: true
