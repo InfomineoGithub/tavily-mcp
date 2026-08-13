@@ -16,6 +16,7 @@ import { hideBin } from 'yargs/helpers';
 dotenv.config();
 
 const API_KEY = process.env.TAVILY_API_KEY;
+const IS_KEYLESS = !API_KEY;
 const HUMAN_ID = process.env.TAVILY_HUMAN_ID;
 const SESSION_ID = randomUUID();
 
@@ -38,6 +39,7 @@ interface TavilyResponse {
     published_date?: string;
     raw_content?: string;
     favicon?: string;
+    id: string;
   }>;
 }
 
@@ -90,7 +92,7 @@ class TavilyClient {
     this.server = new Server(
       {
         name: "tavily-mcp",
-        version: "0.2.19",
+        version: "0.2.22",
       },
       {
         capabilities: {
@@ -103,12 +105,17 @@ class TavilyClient {
       headers: {
         'accept': 'application/json',
         'content-type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`,
-        'X-Client-Source': 'MCP',
+        ...(IS_KEYLESS
+          ? { 'X-Tavily-Access-Mode': 'keyless', 'X-Client-Source': 'tavily-mcp-keyless' }
+          : { 'Authorization': `Bearer ${API_KEY}`, 'X-Client-Source': 'MCP' }),
         'X-Session-Id': SESSION_ID,
         ...(HUMAN_ID ? { 'X-Human-Id': HUMAN_ID } : {}),
       }
     });
+
+    if (IS_KEYLESS) {
+      console.error('[tavily-mcp] no TAVILY_API_KEY set; running in keyless mode. Search and extract are available; other tools will return a message explaining that an API key is required.');
+    }
 
     this.setupHandlers();
     this.setupErrorHandling();
@@ -467,14 +474,6 @@ class TavilyClient {
     });
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
-      // Check for API key at request time and return proper JSON-RPC error
-      if (!API_KEY) {
-        throw new McpError(
-          ErrorCode.InvalidRequest,
-          "TAVILY_API_KEY environment variable is required. Please set it before using this MCP server."
-        );
-      }
-
       try {
         let response: TavilyResponse;
         const args = request.params.arguments ?? {};
@@ -593,6 +592,14 @@ class TavilyClient {
         };
       } catch (error: any) {
         if (axios.isAxiosError(error)) {
+          if (isKeylessEnvelope(error.response?.data)) {
+            return {
+              content: [{
+                type: "text",
+                text: formatKeylessEnvelope(error.response!.data)
+              }]
+            };
+          }
           const toolName = request.params.name?.replace('tavily_', '') || '';
           const docsUrl = this.docsURLs[toolName] || '';
           const responseData = error.response?.data;
@@ -675,7 +682,6 @@ class TavilyClient {
   }
 
   async search(params: any): Promise<TavilyResponse> {
-    try {
       const endpoint = this.baseURLs.search;
 
       const defaults = this.getDefaultParameters();
@@ -698,7 +704,7 @@ class TavilyClient {
         start_date: params.start_date,
         end_date: params.end_date,
         exact_match: params.exact_match,
-        api_key: API_KEY,
+        ...(IS_KEYLESS ? {} : { api_key: API_KEY }),
       };
 
       // Apply default parameters
@@ -728,65 +734,30 @@ class TavilyClient {
 
       const response = await this.axiosInstance.post(endpoint, cleanedParams);
       return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        throw new Error(`Invalid API key. Documentation: ${this.docsURLs.search}`);
-      } else if (error.response?.status === 429) {
-        throw new Error(`Usage limit exceeded. Documentation: ${this.docsURLs.search}`);
-      }
-      throw error;
-    }
   }
 
   async extract(params: any): Promise<TavilyResponse> {
-    try {
-      const response = await this.axiosInstance.post(this.baseURLs.extract, {
-        ...params,
-        api_key: API_KEY
-      });
-      return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        throw new Error(`Invalid API key. Documentation: ${this.docsURLs.extract}`);
-      } else if (error.response?.status === 429) {
-        throw new Error(`Usage limit exceeded. Documentation: ${this.docsURLs.extract}`);
-      }
-      throw error;
-    }
+    const response = await this.axiosInstance.post(this.baseURLs.extract, {
+      ...params,
+      ...(IS_KEYLESS ? {} : { api_key: API_KEY })
+    });
+    return response.data;
   }
 
   async crawl(params: any): Promise<TavilyCrawlResponse> {
-    try {
-      const response = await this.axiosInstance.post(this.baseURLs.crawl, {
-        ...params,
-        api_key: API_KEY
-      });
-      return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        throw new Error(`Invalid API key. Documentation: ${this.docsURLs.crawl}`);
-      } else if (error.response?.status === 429) {
-        throw new Error(`Usage limit exceeded. Documentation: ${this.docsURLs.crawl}`);
-      }
-      throw error;
-    }
+    const response = await this.axiosInstance.post(this.baseURLs.crawl, {
+      ...params,
+      ...(IS_KEYLESS ? {} : { api_key: API_KEY })
+    });
+    return response.data;
   }
 
   async map(params: any): Promise<TavilyMapResponse> {
-    try {
-      const response = await this.axiosInstance.post(this.baseURLs.map, {
-        ...params,
-        api_key: API_KEY
-      });
-      return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        throw new Error(`Invalid API key. Documentation: ${this.docsURLs.map}`);
-      } else if (error.response?.status === 429) {
-        throw new Error(`Usage limit exceeded. Documentation: ${this.docsURLs.map}`);
-      }
-      throw error;
-    }
+    const response = await this.axiosInstance.post(this.baseURLs.map, {
+      ...params,
+      ...(IS_KEYLESS ? {} : { api_key: API_KEY })
+    });
+    return response.data;
   }
 
   async research(params: any): Promise<TavilyResearchResponse> {
@@ -800,7 +771,7 @@ class TavilyClient {
       const response = await this.axiosInstance.post(this.baseURLs.research, {
         input: params.input,
         model: params.model || 'auto',
-        api_key: API_KEY
+        ...(IS_KEYLESS ? {} : { api_key: API_KEY })
       });
 
       const requestId = response.data.request_id;
@@ -850,6 +821,13 @@ class TavilyClient {
 
       return { error: `Research task timed out. Documentation: ${this.docsURLs.research}` };
     } catch (error: any) {
+      // If the API signals that this request must use streaming, fall back to
+      // stream=true transparently and assemble the report in memory — the tool
+      // result is identical to the polling flow.
+      if (error.response?.status === 400 &&
+          error.response?.data?.detail?.error_code === 'research_stream_required') {
+        return this.researchViaStream(params);
+      }
       if (error.response?.status === 401) {
         throw new Error(`Invalid API key. Documentation: ${this.docsURLs.research}`);
       } else if (error.response?.status === 429) {
@@ -887,6 +865,188 @@ class TavilyClient {
       throw error;
     }
   }
+
+  private async researchViaStream(params: any): Promise<TavilyResearchResponse> {
+    const HEADERS_TIMEOUT_MS = 30000;      // time budget for the response to start
+    const STREAM_IDLE_TIMEOUT_MS = 300000; // 5 min: tolerate the silent report-generation phase (the report is generated then flushed at once, so no bytes flow meanwhile)
+    const maxStreamDuration = params.model === 'mini' ? 300000 : 900000;
+
+    const controller = new AbortController();
+    const headerTimer = setTimeout(() => controller.abort(), HEADERS_TIMEOUT_MS);
+    let response;
+    try {
+      response = await this.axiosInstance.post(
+        this.baseURLs.research,
+        {
+          input: params.input,
+          model: params.model || 'auto',
+          ...(IS_KEYLESS ? {} : { api_key: API_KEY }),
+          stream: true
+        },
+        {
+          responseType: 'stream',
+          signal: controller.signal,
+          timeout: 0, // lifetime is enforced by the timers below, not by axios
+          validateStatus: () => true
+        }
+      );
+    } catch (error: any) {
+      const reason = controller.signal.aborted
+        ? `no response after ${HEADERS_TIMEOUT_MS / 1000}s`
+        : error.message;
+      return { error: `Research stream request failed: ${reason}. Documentation: ${this.docsURLs.research}` };
+    } finally {
+      clearTimeout(headerTimer);
+    }
+
+    const stream = response.data;
+
+    if (response.status !== 200) {
+      const body = await this.readStreamBounded(stream, 16384);
+      let detail = body;
+      try {
+        const parsed = JSON.parse(body);
+        detail = JSON.stringify(parsed.detail ?? parsed);
+      } catch { /* keep raw body */ }
+      return { error: `Research stream request failed (HTTP ${response.status}): ${detail}. Documentation: ${this.docsURLs.research}` };
+    }
+
+    return new Promise<TavilyResearchResponse>((resolve) => {
+      let content = '';
+      let buffer = '';
+      let settled = false;
+      let idleTimer: NodeJS.Timeout | undefined;
+
+      const settle = (result: TavilyResearchResponse) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(idleTimer);
+        clearTimeout(overallTimer);
+        // Tear the connection down immediately — never leave it open once the
+        // outcome is known.
+        stream.destroy();
+        resolve(result);
+      };
+
+      const overallTimer = setTimeout(() => {
+        settle({ error: `Research stream timed out after ${maxStreamDuration / 1000}s. Documentation: ${this.docsURLs.research}` });
+      }, maxStreamDuration);
+
+      const resetIdleTimer = () => {
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => {
+          settle({ error: `Research stream received no data for ${STREAM_IDLE_TIMEOUT_MS / 1000}s; connection closed. Documentation: ${this.docsURLs.research}` });
+        }, STREAM_IDLE_TIMEOUT_MS);
+      };
+      resetIdleTimer();
+
+      const handleFrame = (frame: string) => {
+        let eventType = 'message';
+        const dataLines: string[] = [];
+        for (const line of frame.split(/\r?\n/)) {
+          if (line.startsWith('event:')) eventType = line.slice(6).trim();
+          else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+        }
+        const data = dataLines.join('\n');
+
+        if (eventType === 'error') {
+          let message: any = data;
+          try { message = JSON.parse(data).error ?? data; } catch { /* keep raw data */ }
+          if (typeof message === 'object') message = JSON.stringify(message);
+          settle({ error: `Research stream error: ${message}. Documentation: ${this.docsURLs.research}` });
+          return;
+        }
+        if (eventType === 'done') {
+          settle(content
+            ? { content }
+            : { error: `Research stream completed without content. Documentation: ${this.docsURLs.research}` });
+          return;
+        }
+        if (!data) return;
+        try {
+          const delta = JSON.parse(data).choices?.[0]?.delta;
+          if (typeof delta?.content === 'string') content += delta.content;
+        } catch { /* tolerate malformed frames; completion integrity is guarded by the done event */ }
+      };
+
+      stream.on('data', (chunk: Buffer) => {
+        if (settled) return;
+        resetIdleTimer();
+        buffer += chunk.toString('utf-8');
+        const frames = buffer.split('\n\n');
+        buffer = frames.pop() ?? '';
+        for (const frame of frames) {
+          if (settled) break;
+          if (frame.trim()) handleFrame(frame);
+        }
+      });
+      stream.on('error', (err: Error) => {
+        settle({ error: `Research stream connection error: ${err.message}. Documentation: ${this.docsURLs.research}` });
+      });
+      // 'end'/'close' without a done event means the connection dropped before
+      // completion — a partial report is worse than an explicit error.
+      stream.on('end', () => {
+        // The server ends the stream right after `event: done` without a
+        // trailing blank line, so the final frame may still be buffered —
+        // flush it before judging the outcome.
+        if (!settled && buffer.trim()) handleFrame(buffer.trim());
+        settle({ error: `Research stream ended before completion. Documentation: ${this.docsURLs.research}` });
+      });
+      stream.on('close', () => {
+        settle({ error: `Research stream closed before completion. Documentation: ${this.docsURLs.research}` });
+      });
+    });
+  }
+
+  /** Read at most maxBytes from a stream as text, then destroy it. */
+  private readStreamBounded(stream: any, maxBytes: number): Promise<string> {
+    return new Promise((resolve) => {
+      let data = '';
+      const timer = setTimeout(() => { stream.destroy(); resolve(data); }, 10000);
+      const finish = () => { clearTimeout(timer); resolve(data); };
+      stream.on('data', (chunk: Buffer) => {
+        data += chunk.toString('utf-8');
+        if (data.length >= maxBytes) stream.destroy();
+      });
+      stream.on('end', finish);
+      stream.on('close', finish);
+      stream.on('error', finish);
+    });
+  }
+}
+
+function isKeylessEnvelope(data: any): boolean {
+  // Recognises the Tavily API's recoverable-error envelope shape.
+  // Used for keyless rate-limit caps and endpoints that require an API key.
+  return !!(data && typeof data === 'object'
+    && data.error && typeof data.error === 'object'
+    && typeof data.error.code === 'string');
+}
+
+function formatKeylessEnvelope(data: any): string {
+  // Render the Tavily API's recoverable-error envelope as plain text:
+  // the natural-language message, followed by retry-after (when present).
+  const err = data.error;
+  const lines: string[] = [String(err.message ?? '')];
+  if (err.retry_after_seconds != null) {
+    lines.push(`Retry after: ${err.retry_after_seconds}s`);
+  }
+  if (Array.isArray(err.next_actions) && err.next_actions.length > 0) {
+    lines.push('', 'Continuation options:');
+    for (const a of err.next_actions) {
+      if (a?.type === 'agentic_payment') {
+        lines.push(`- Agentic payment (${a.scheme ?? 'x402'}): ${a.details ?? ''}`);
+      } else if (a?.type === 'signup') {
+        lines.push(`- Sign up for a Tavily API key: ${a.url ?? ''}`);
+      } else if (a?.type === 'bonus_credits' && a.eligible) {
+        lines.push(`- Earn ${a.credits_on_completion ?? ''} bonus credits by POSTing answers to ${a.endpoint ?? ''}`);
+        if (Array.isArray(a.questions)) {
+          a.questions.forEach((q: string, i: number) => lines.push(`    ${i + 1}. ${q}`));
+        }
+      }
+    }
+  }
+  return lines.filter(Boolean).join('\n');
 }
 
 function formatResults(response: TavilyResponse): string {
@@ -907,6 +1067,9 @@ function formatResults(response: TavilyResponse): string {
   output.push('Detailed Results:');
   response.results.forEach(result => {
     output.push(`\nTitle: ${result.title}`);
+    if (result.id) {
+      output.push(`ID: ${result.id}`);
+    }
     output.push(`URL: ${result.url}`);
     output.push(`Content: ${result.content}`);
     if (result.raw_content) {
