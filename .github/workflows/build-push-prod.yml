@@ -1,12 +1,15 @@
 name: Build & Push (Production)
 
-# Production mirror of build-push-staging.yml. Fires on pushes to `main` and
-# pushes the image to the brain-prod-450115 Artifact Registry. Auth uses
-# Workload Identity Federation against the prod project's github-actions-pool.
+# Production mirror of build-push-staging.yml. Fires on pushes to `brain-main`
+# — the release branch brain-prod's ArgoCD Application tracks — and pushes the
+# image to the brain-prod-450115 Artifact Registry. `main` stays the shared
+# source of truth and feeds the stellantis build; promote to prod by merging
+# `main` into `brain-main`. Auth uses Workload Identity Federation against the
+# prod project's github-actions-pool.
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [brain-main]
     paths-ignore:
       - 'charts/**'
       - '.github/**'
