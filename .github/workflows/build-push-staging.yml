@@ -5,6 +5,9 @@ on:
     branches: [dev]
     paths-ignore:
       - 'charts/**'
+      - '.github/**'
+      - '**.md'
+      - '.gitignore'
 
 concurrency:
   group: build-${{ github.ref }}
