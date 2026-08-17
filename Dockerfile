@@ -8,7 +8,18 @@ COPY src/ ./src/
 RUN --mount=type=cache,target=/root/.npm npm ci
 
 
+# Copy source and build
+COPY tsconfig.json ./
+COPY src/ ./src/
+RUN npm run build
+
+# ── Production image ──────────────────────────────────────────────────────────
 FROM node:22-alpine AS release
+
+ENV NODE_ENV=production \
+    MCP_TRANSPORT=streamable-http \
+    MCP_HOST=0.0.0.0 \
+    MCP_PORT=8000
 
 WORKDIR /app
 
