@@ -172,10 +172,10 @@ class TavilyClient {
 
   private setupToolHandlers(): void {
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      // Define available tools: tavily_search and tavily_extract
+      // Define available tools: search and extract
       const tools: Tool[] = [
         {
-          name: "tavily_search",
+          name: "search",
           description: "Search the web for current information on any topic. Use for news, facts, or data beyond your knowledge cutoff. Returns snippets and source URLs.",
           inputSchema: {
             type: "object",
@@ -272,7 +272,7 @@ class TavilyClient {
           }
         },
         {
-          name: "tavily_extract",
+          name: "extract",
           description: "Extract content from URLs. Returns raw page content in markdown or text format.",
           inputSchema: {
             type: "object",
@@ -313,7 +313,7 @@ class TavilyClient {
           }
         },
         {
-          name: "tavily_crawl",
+          name: "crawl",
           description: "Crawl a website starting from a URL. Extracts content from pages with configurable depth and breadth.",
           inputSchema: {
             type: "object",
@@ -383,7 +383,7 @@ class TavilyClient {
           }
         },
         {
-          name: "tavily_map",
+          name: "map",
           description: "Map a website's structure. Returns a list of URLs found starting from the base URL.",
           inputSchema: {
             type: "object",
@@ -436,7 +436,7 @@ class TavilyClient {
           }
         },
         {
-          name: "tavily_research",
+          name: "research",
           description: "Perform comprehensive research on a given topic or question. Use this tool when you need to gather information from multiple sources to answer a question or complete a task. Returns a detailed response based on the research findings. Rate limit: 20 requests per minute.",
           inputSchema: {
             type: "object",
@@ -456,14 +456,14 @@ class TavilyClient {
           }
         },
         {
-          name: "tavily_research_status",
-          description: "Check the status of a previously submitted tavily_research job. If completed, returns the full research content. If still in progress, returns a status message so the agent knows to poll again later. Use the request_id returned by tavily_research.",
+          name: "research_status",
+          description: "Check the status of a previously submitted research job. If completed, returns the full research content. If still in progress, returns a status message so the agent knows to poll again later. Use the request_id returned by research.",
           inputSchema: {
             type: "object",
             properties: {
               request_id: {
                 type: "string",
-                description: "The request_id returned by a previous tavily_research call"
+                description: "The request_id returned by a previous research call"
               }
             },
             required: ["request_id"]
@@ -479,7 +479,7 @@ class TavilyClient {
         const args = request.params.arguments ?? {};
 
         switch (request.params.name) {
-          case "tavily_search":
+          case "search":
             // If country is set, ensure topic is general
             if (args.country) {
               args.topic = "general";
@@ -505,7 +505,7 @@ class TavilyClient {
             });
             break;
 
-          case "tavily_extract":
+          case "extract":
             response = await this.extract({
               urls: args.urls,
               extract_depth: args.extract_depth,
@@ -516,7 +516,7 @@ class TavilyClient {
             });
             break;
 
-          case "tavily_crawl":
+          case "crawl":
             const crawlResponse = await this.crawl({
               url: args.url,
               max_depth: args.max_depth,
@@ -538,7 +538,7 @@ class TavilyClient {
               }]
             };
 
-          case "tavily_map":
+          case "map":
             const mapResponse = await this.map({
               url: args.url,
               max_depth: args.max_depth,
@@ -556,7 +556,7 @@ class TavilyClient {
               }]
             };
 
-          case "tavily_research":
+          case "research":
             const researchResponse = await this.research({
               input: args.input,
               model: args.model
@@ -568,7 +568,7 @@ class TavilyClient {
               }]
             };
 
-          case "tavily_research_status":
+          case "research_status":
             const statusResponse = await this.researchStatus(args.request_id);
             return {
               content: [{
@@ -600,7 +600,7 @@ class TavilyClient {
               }]
             };
           }
-          const toolName = request.params.name?.replace('tavily_', '') || '';
+          const toolName = request.params.name || '';
           const docsUrl = this.docsURLs[toolName] || '';
           const responseData = error.response?.data;
           const detail = responseData && typeof responseData === 'object'
@@ -1152,34 +1152,34 @@ function formatResearchStatusResult(response: { status: string; content?: string
     return `Status: ${response.status}\nError: ${response.error ?? 'Unknown error'}`;
   }
   // Still running
-  return `Status: ${response.status}\nThe research job is still in progress. Call tavily_research_status again with the same request_id to check for completion.`;
+  return `Status: ${response.status}\nThe research job is still in progress. Call research_status again with the same request_id to check for completion.`;
 }
 
 function listTools(): void {
   const tools = [
     {
-      name: "tavily_search",
+      name: "search",
       description: "A real-time web search tool powered by Tavily's AI engine. Features include customizable search depth (basic/advanced/fast/ultra-fast), domain filtering, time-based filtering, and support for both general and news-specific searches. Returns comprehensive results with titles, URLs, content snippets, and optional image results."
     },
     {
-      name: "tavily_extract",
+      name: "extract",
       description: "Extracts and processes content from specified URLs with advanced parsing capabilities. Supports both basic and advanced extraction modes, with the latter providing enhanced data retrieval including tables and embedded content. Ideal for data collection, content analysis, and research tasks."
     },
     {
-      name: "tavily_crawl",
+      name: "crawl",
       description: "A sophisticated web crawler that systematically explores websites starting from a base URL. Features include configurable depth and breadth limits, domain filtering, path pattern matching, and category-based filtering. Perfect for comprehensive site analysis, content discovery, and structured data collection."
     },
     {
-      name: "tavily_map",
+      name: "map",
       description: "Creates detailed site maps by analyzing website structure and navigation paths. Offers configurable exploration depth, domain restrictions, and category filtering. Ideal for site audits, content organization analysis, and understanding website architecture and navigation patterns."
     },
     {
-      name: "tavily_research",
+      name: "research",
       description: "Performs comprehensive research on any topic or question by gathering information from multiple sources. Supports different research depths ('mini' for narrow tasks, 'pro' for broad research, 'auto' for automatic selection). Ideal for in-depth analysis, report generation, and answering complex questions requiring synthesis of multiple sources."
     },
     {
-      name: "tavily_research_status",
-      description: "Check the status of a previously submitted tavily_research job using its request_id. Returns the full research content if completed, a progress message if still running, or an error if the job failed or was not found. Use this to poll for completion of long-running research tasks."
+      name: "research_status",
+      description: "Check the status of a previously submitted research job using its request_id. Returns the full research content if completed, a progress message if still running, or an error if the job failed or was not found. Use this to poll for completion of long-running research tasks."
     }
   ];
 
