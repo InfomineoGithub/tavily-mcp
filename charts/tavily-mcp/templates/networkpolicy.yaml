@@ -1,0 +1,53 @@
+{{- /*
+Ingress-only containment. Nothing in the cluster may open a connection to these
+pods except the namespaces listed in `networkPolicy.allowedNamespaces`, while
+their own outbound traffic is left entirely unrestricted -- a policy that names
+no egress rules does not restrict egress, so nothing this server calls out to
+can break.
+
+Rendered by default, because the alternative default is an API-key-holding
+service reachable from every pod in the cluster. Set `networkPolicy.enabled:
+false` to opt out.
+*/}}
+{{- $np := .Values.networkPolicy | default dict }}
+{{- if or (not (hasKey $np "enabled")) $np.enabled }}
+{{- $allowedNamespaces := $np.allowedNamespaces | default (list "deer-flow") }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "tavily-mcp.fullname" . }}-default-deny-ingress
+  labels:
+    {{- include "tavily-mcp.labels" . | nindent 4 }}
+spec:
+  # Namespace-wide, so a pod added here later is denied by default instead of
+  # being silently reachable from the whole cluster. Kubelet health probes
+  # originate on the node and are not affected.
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "tavily-mcp.fullname" . }}-allow-clients
+  labels:
+    {{- include "tavily-mcp.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "tavily-mcp.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        {{- range $allowedNamespaces }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . }}
+        {{- end }}
+      ports:
+        # The port the container listens on. A NetworkPolicy matches the pod
+        # port, never the Service port, and the two are free to differ.
+        - protocol: TCP
+          port: {{ .Values.config.mcpPort | int }}
+{{- end }}
