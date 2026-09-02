@@ -15,7 +15,7 @@ service:
     port: ENC[AES256_GCM,data:CuRjuQ==,iv:ThMGRhG1LJVNLOPZMDLhHpGHn9MLTBxbebKY/zXyaH8=,tag:Yl3o6ei/vfgtNnq/Aezq/Q==,type:int]
 resources:
     requests:
-        cpu: ENC[AES256_GCM,data:JW46Fg==,iv:7+dl9HcqzXkY9s8wlSNThf0XCrtq6vJS+UE3ed6A0RU=,tag:F3h5NZTnNRqP/tjdC9s8oA==,type:str]
+        cpu: ENC[AES256_GCM,data:7FQtBQ==,iv:HlPEiTqvPwsvJ1YLdVeKXx4fBXCtsNXT9FAbvA/eb7M=,tag:JhKDywRnrV7yjofD2QX0Sg==,type:str]
         memory: ENC[AES256_GCM,data:AFE31WU=,iv:onJM0O8St3NJbcwYddzLHHJTaPXwt3dzCpxpR1KyJRk=,tag:LoiPx8dZApf3ggbYdiuMpg==,type:str]
     limits:
         cpu: ENC[AES256_GCM,data:dQ==,iv:YCSJ7L4VVPOQj5NKGi1DirEnFA7CBWzf+h8zMg0+S6M=,tag:xYayhUx5irmS0/qkETNrFA==,type:str]
@@ -40,8 +40,8 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 sops:
-    lastmodified: "2026-06-02T13:49:15Z"
-    mac: ENC[AES256_GCM,data:rf1I+0HjnRuXg1oGvLAOMIN8TmJAPOCwKCzBv5Ysazlp2CU1Jj15aWI4nznirMLFyTF00Pnn+2GWR/gEnislaiPn6IkdoDnAXkm9vShJ4fSmi4fBo+xiC1i1hZF13KSanYfszoX9IDWbfDTM6Wzl87fuUs4lOE3maQ8GztV3ls0=,iv:3PYBR6ZOft8183UawnWywrSPZEI2Oq5476gtLTeVUOQ=,tag:2N70soQSXQonOuta9W8+XQ==,type:str]
+    lastmodified: "2026-09-02T07:10:07Z"
+    mac: ENC[AES256_GCM,data:RYMWitBVKZxJ+TMJxlfXbGYYmsKuUQnxLZacZJd1j5jDRgxxfawQlgc4CKFXRypd3IJzym7TKR5s2TExT6XVutscep7AfBnyUFfpfUXlLeFc3HDwDZy4E23TIq4Np5CE5HCaSMRdS99XCSVf3KX8Jloi8n41FD11Vg+A1Gv/Lao=,iv:/cd0l6kiS4hJLx+o+98u5YFnIq84CLHF8LzMHC2Jv3g=,tag:YYfzdrd/Uf4WfYwOa2IYzg==,type:str]
     pgp:
         - created_at: "2026-06-02T13:49:15Z"
           enc: |-
