@@ -1,5 +1,5 @@
 fullnameOverride: ENC[AES256_GCM,data:4cWL+agCFqVL2g==,iv:JLA0NdkxqfC+Ax6poWPjmeqSn/gzawbNXDeWYybB8CM=,tag:IBECHCmxhWq/EyBA2zx4Ow==,type:str]
-replicaCount: ENC[AES256_GCM,data:mA==,iv:/bMbcxUznwPYQCXrXoxTiRPdFCj7plUdJp0l8yqYwT0=,tag:ArXA5Ni0I9NrHOi4chgGYg==,type:int]
+replicaCount: ENC[AES256_GCM,data:Sg==,iv:v565lfr18ZJ8blTMpf+zzisE/0v3x/xR53tYwihsF6s=,tag:YA9iJ3Iuj7LZK3JnxXJP/Q==,type:float]
 image:
     repository: ENC[AES256_GCM,data:vspRPTLsJ5uCmQezajRewoefEONIGvp+LvyvoW/DByz135L8oFegCjZHP/bAq8ehqY7WtRgutgwhSpIoVs5cmGHVuTrE1LY+iA==,iv:sntu4uhO2mJAu5SrqJw0dpi0OgTrhNHCvVvxJK/M2KM=,tag:ZmF46v1aZ5wdiz+PnYMGNQ==,type:str]
     tag: ENC[AES256_GCM,data:Ih470DXp,iv:ZZU1VSL9tfWdxJ9NhPM3Qodok55gRleThhBIWHxfgu8=,tag:r5SqHKwRHCw2pWaI+gdf1w==,type:str]
@@ -39,8 +39,8 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 sops:
-    lastmodified: "2026-07-28T13:11:33Z"
-    mac: ENC[AES256_GCM,data:COkN/ZkPXi+bGBxrxfRLejGxYpN/L+ahiOcg45FkYx52nUfe14Y9OpP/Pcjd/zGX6dWc2+vINvWhM1tyG4RvP8SFium6ajMlQCCqw/oCcEhzGzluw/+oWaoEYXHHkSuiTb7RqGKNe7328dftOZY/mRIryzlUpCXh6J1Ac5pcSUg=,iv:Q43S3PcWAoWyY9as3xp2RJUtpU1eLUVUvS8/4B++Yao=,tag:Ph76r1gWW+ReMwSDM0Jq9w==,type:str]
+    lastmodified: "2026-09-09T12:25:52Z"
+    mac: ENC[AES256_GCM,data:A6AIQ0tVSjZQ2fAuCy5+rc/xzYQjTqRAIE5uMMmBZYLh/hDk6lRKePv5ANXWtJwmkLgLmbgncqqlGERJIns9UKBKWy1lgfkqm+OCPuN/pdnRq54Zc0uK/2vDee6PhXbN6r44IRL+bMwyv0P1AXl5Z+II0I3w7yoKO/FCWAfaByA=,iv:AiIbZxxhcbvyRVgSyfkSjl4tC8PE7NHnvMSkREqM0QY=,tag:5PJbBdgKwJjlCkxt3S+8GA==,type:str]
     pgp:
         - created_at: "2026-07-28T13:11:33Z"
           enc: |-
