@@ -15,7 +15,7 @@ service:
 resources:
     requests:
         cpu: ENC[AES256_GCM,data:m+kDBg==,iv:F8NS7YUVnSiut/XqAvTfwlHEcN8MWa+46UyLwzcsSf8=,tag:CQ8dqBkIFTEr1DjlccYQkw==,type:str]
-        memory: ENC[AES256_GCM,data:Yw1qZ9M=,iv:m86mpn908SvWQ92qZiFS4f4A3lXskwwiLlPYXQIZj+c=,tag:+GlR3jkyNuYSrPwx15t2UA==,type:str]
+        memory: ENC[AES256_GCM,data:m2GLbVw=,iv:HZuBSHn1M1TtiT4RDqsnPA/KF7zoRkZIYxlSW6S+ql0=,tag:9mNCsjgsloHeB0iIbJ0meA==,type:str]
     limits:
         cpu: ENC[AES256_GCM,data:XxK4xQ==,iv:6X3VLcm4rF3OFwIv7fhKYzpWj/HkfD9jXkHMWSmkdkU=,tag:qUYl5GuDIYApZkJ4EQnEEw==,type:str]
         memory: ENC[AES256_GCM,data:ybpjCh4=,iv:F9ZTYJSvhpzSa+PumRm2H0Widqz1ccEkbCZrbfizXLw=,tag:z408G5k5ORRmysi/TLmXGQ==,type:str]
@@ -39,8 +39,8 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 sops:
-    lastmodified: "2026-09-09T12:25:52Z"
-    mac: ENC[AES256_GCM,data:A6AIQ0tVSjZQ2fAuCy5+rc/xzYQjTqRAIE5uMMmBZYLh/hDk6lRKePv5ANXWtJwmkLgLmbgncqqlGERJIns9UKBKWy1lgfkqm+OCPuN/pdnRq54Zc0uK/2vDee6PhXbN6r44IRL+bMwyv0P1AXl5Z+II0I3w7yoKO/FCWAfaByA=,iv:AiIbZxxhcbvyRVgSyfkSjl4tC8PE7NHnvMSkREqM0QY=,tag:5PJbBdgKwJjlCkxt3S+8GA==,type:str]
+    lastmodified: "2026-09-10T11:20:45Z"
+    mac: ENC[AES256_GCM,data:9MmuSC8pmebxCYwFrLDZHv0/rr6S1f0Lw+0ab2OEqOUHaRuq3rI3uko1ChYuHTVBWNATdajO4siwUfoHB/kbAIe98G97IvyJ8PE90QmtZ3JUTTXGsAjFbJQ9pE1DO2RlpHO1OYNeY7OtiasujHe/7CqloOidzbIgyokDt7RUpFc=,iv:awkid+zE6OwdlePTeHdpZ4LZrMPkkzXNWHm3/9PZw+Q=,tag:Y5d8GJcKLR0uZODY1/cmzg==,type:str]
     pgp:
         - created_at: "2026-07-28T13:11:33Z"
           enc: |-
