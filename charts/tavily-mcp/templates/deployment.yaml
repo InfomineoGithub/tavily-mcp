@@ -14,6 +14,8 @@ spec:
   template:
     metadata:
       annotations:
+        {{- $podAnnotations := merge (dict) (.Values.podAnnotations | default dict) (dict "cluster-autoscaler.kubernetes.io/safe-to-evict" "false") }}
+        {{- toYaml $podAnnotations | nindent 8 }}
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
       labels:
