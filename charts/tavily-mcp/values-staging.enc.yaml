@@ -15,7 +15,7 @@ service:
 resources:
     requests:
         cpu: ENC[AES256_GCM,data:LHDm8w==,iv:8Df0UIu8k5WpUaYfnn9TSJ1xfyV1Z5vaxQC30KfuLoo=,tag:A1XyrTbWsj2AfXUJsVmP8w==,type:str]
-        memory: ENC[AES256_GCM,data:dOst5Lo=,iv:ovlwpigJXGohowABtyU1iwuLSlGy9VSGKxdprbAB5NQ=,tag:2HNhIdrhTMu5AV4XX6/zZg==,type:str]
+        memory: ENC[AES256_GCM,data:GlBdJOo=,iv:GRgTSa07itPQ1rxGSutLOR0L39bH8Er5tSZHtRlXGgQ=,tag:uxmRGOYjK+QjWphlMn83JA==,type:str]
     limits:
         cpu: ENC[AES256_GCM,data:b/js2g==,iv:WgFvoW+mjqpPX1wibxHhq3XOQlpw+0OsyDNDdBY/gR0=,tag:gZgjqFiGjNeUOAb4uoBi6g==,type:str]
         memory: ENC[AES256_GCM,data:U20HQlM=,iv:xCiSfrc0A0/8rKXVYxFn0AtS4Ftzg0MZvqbwRNEzI0E=,tag:T4YbVN8rZ5nMHRkyP9TyUg==,type:str]
@@ -39,8 +39,8 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 sops:
-    lastmodified: "2026-10-11T11:15:56Z"
-    mac: ENC[AES256_GCM,data:pm71LwspTlfGmR7pHTvSUfd7aJ4g23Ukcbig/U43tU0L98UzYiJqiL//SUtmKhtIh/xKudVu8ZB+oPm/prxJx4dqNrrN+F7QNGCEJZ9b29MjfteA7uOfgyCK++TCLG2ewOoKYLhRPRdhZx30dkXk4xT0WRNOfkyf2ocLiufUBNo=,iv:8latyeUAWxtXbc69d5mJGBhMhiViwT4TsidbHAs1E/Q=,tag:Gd8CaCX0zIRKhP/AuOs3JQ==,type:str]
+    lastmodified: "2026-10-29T12:54:37Z"
+    mac: ENC[AES256_GCM,data:6ZWPPsLhg24Shxs0XmjSx9J6OC00sR2PLDH5o4s0IMQ5NwXiSh8RCSPSFMc0g41YwAidwCpN5Im0aK3eFkBQI/419RXWBZgrbIbfiVeNObh951/GFmoEixyr1vCf3sqtN92NycgHHNkwR5TkVNS361MJBEOkbg6RJajXVvmuHRA=,iv:6nW8OiJHb6OFV22oIHb2myyy5NYZVPaW2l213/cFKD0=,tag:Hfvgcm7feHS5vh9PdDiSQA==,type:str]
     pgp:
         - created_at: "2026-10-11T11:15:56Z"
           enc: "-----BEGIN PGP MESSAGE-----\r\n\r\nhQIMA9vn3oG2RG7UARAAiQuzsMu4d0vmGaw25ZDYG1Gs8jHiqhMJWirXTrtQz5Dh\r\nN3v8qORiuMGnPpcvgJOciFaTZxyzNNqO7HOY0cDkIpLdqzlgabH75gQcIB2sFfOF\r\n1W1tP/1wI0UuO1rb5nnWMMFtQ9cMjkjx4PmkxXdfcHugnVxF7L7+qimaFtAn+rTA\r\nRv9zrv/LR0ikGAuhcCxYSAhTMq9OpNpqcEZaXoL+DBnrbD29FdgSu2juZY5+UNyq\r\nZcNhPYxcg76d4eK7OOBoLbPjnj6hGxh+fJ+U76peIl3qpgo9kQIYzH2WN9cP4qgZ\r\n4CYTx1h8ebTfFwfCJXswiMtTZNxtWWo791Axc0o7JyJlextnHrAPPXt6P1Fl3viX\r\nVAA7egJ+Nuw9Q/WSRX6KDg6rNvMAcYOiRP2v8mrwncc/M8FWEVQTFlA2cjy6BtHk\r\n5suPjMYEX+wesDafgMQIj48OmD60Y2LIzHWYnS3kS2HMuo4FptKTXl/tJayvGvUM\r\nR8RgpNZ4DZwKbTF4bgRGS0ynXqGC/F769QCHzjXtTbyyskg+N48ODvs712GTZQAe\r\nIYuquBLmGf/NHku9Ne4me2f/P4M6krvrGwPHj0Y5j5jnQIJDlEAEsQhCexjT6kU5\r\nlM3s8vSfre4KXvxyAtLep6qxAIGLI8ZbVH1+kH4FXYu8vJl3TFlVVpDvgpe9lBLS\r\nXgHV1VzVXcdslaoTa+x3PP+ktTA/BvNJjcA/TUOi2jYnWBYaY5GLM4mNrHY1doNp\r\nrSmz6pVKtJnrv05HSFLqeS49Ov9cboxD9PWbxD8uGna8QXcxWaX030CHsavJlII=\r\n=UrR2\r\n-----END PGP MESSAGE-----"
